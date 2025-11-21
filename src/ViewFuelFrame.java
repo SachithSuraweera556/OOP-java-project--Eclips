@@ -8,7 +8,7 @@ import java.sql.ResultSet;
 public class ViewFuelFrame extends JFrame {
     private JTable table;
     private DefaultTableModel tableModel;
-    private JButton refreshButton;
+    private JButton refreshButton, updateButton, deleteButton;
 
     public ViewFuelFrame() {
         setTitle("View All Fuel Records");
@@ -16,85 +16,209 @@ public class ViewFuelFrame extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // Create table with column names
         String[] columns = {"ID", "Date", "Vehicle No", "Tank Liters", "From", 
                            "To", "Distance (km)", "Fuel Needed (L)", "Receiver"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Make table read-only
+                return false;
             }
         };
         table = new JTable(tableModel);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         
-        // Adjust column widths
-        table.getColumnModel().getColumn(0).setPreferredWidth(50);  // ID
-        table.getColumnModel().getColumn(2).setPreferredWidth(100); // Vehicle No
-        table.getColumnModel().getColumn(4).setPreferredWidth(120); // From
-        table.getColumnModel().getColumn(5).setPreferredWidth(120); // To
-        table.getColumnModel().getColumn(8).setPreferredWidth(120); // Receiver
+        table.getColumnModel().getColumn(0).setPreferredWidth(50);
+        table.getColumnModel().getColumn(2).setPreferredWidth(100);
+        table.getColumnModel().getColumn(4).setPreferredWidth(120);
+        table.getColumnModel().getColumn(5).setPreferredWidth(120);
+        table.getColumnModel().getColumn(8).setPreferredWidth(120);
         
-        // Add scroll pane
         JScrollPane scrollPane = new JScrollPane(table);
         add(scrollPane, BorderLayout.CENTER);
 
-        // Add refresh button
-        refreshButton = new JButton("Refresh Data");
-        refreshButton.addActionListener(e -> loadFuelData());
-        
         JPanel buttonPanel = new JPanel();
+        refreshButton = new JButton("Refresh Data");
+        updateButton = new JButton("Update Selected");
+        deleteButton = new JButton("Delete Selected");
+        
+        updateButton.setBackground(new Color(70, 130, 180));
+        updateButton.setForeground(Color.WHITE);
+        deleteButton.setBackground(new Color(220, 53, 69));
+        deleteButton.setForeground(Color.WHITE);
+        
+        refreshButton.addActionListener(e -> loadFuelData());
+        updateButton.addActionListener(e -> updateSelectedFuel());
+        deleteButton.addActionListener(e -> deleteSelectedFuel());
+        
         buttonPanel.add(refreshButton);
+        buttonPanel.add(updateButton);
+        buttonPanel.add(deleteButton);
         add(buttonPanel, BorderLayout.SOUTH);
 
-        // Load data when frame opens
         loadFuelData();
-
         setLocationRelativeTo(null);
         setVisible(true);
     }
 
     private void loadFuelData() {
-        // Clear existing data
         tableModel.setRowCount(0);
-
         String sql = "SELECT id, date, vehicle_number, tank_liters, location_from, " +
-                     "location_to, distance, fuel_needed, receiver_name " +
-                     "FROM fuel_log ORDER BY id DESC"; // Show newest first
+                     "location_to, distance, fuel_needed, receiver_name FROM fuel_log ORDER BY id DESC";
         
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
-            // Add each row to the table
             while (rs.next()) {
                 Object[] row = {
                     rs.getInt("id"),
                     rs.getString("date"),
                     rs.getString("vehicle_number"),
-                    String.format("%.2f", rs.getDouble("tank_liters")),
+                    rs.getDouble("tank_liters"),
                     rs.getString("location_from"),
                     rs.getString("location_to"),
-                    String.format("%.2f", rs.getDouble("distance")),
-                    String.format("%.2f", rs.getDouble("fuel_needed")),
+                    rs.getDouble("distance"),
+                    rs.getDouble("fuel_needed"),
                     rs.getString("receiver_name")
                 };
                 tableModel.addRow(row);
             }
 
-            // Show message if no data found
             if (tableModel.getRowCount() == 0) {
-                JOptionPane.showMessageDialog(this, 
-                    "No fuel records found in database.", 
-                    "Information", 
-                    JOptionPane.INFORMATION_MESSAGE);
+                JOptionPane.showMessageDialog(this, "No fuel records found.", "Information", JOptionPane.INFORMATION_MESSAGE);
             }
-
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, 
-                "Error loading data: " + ex.getMessage(), 
-                "Database Error", 
-                JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error loading data: " + ex.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
             ex.printStackTrace();
+        }
+    }
+
+    private void deleteSelectedFuel() {
+        int selectedRow = table.getSelectedRow();
+        
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Please select a row to delete!", "No Selection", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        int fuelId = (int) tableModel.getValueAt(selectedRow, 0);
+        String vehicleNo = (String) tableModel.getValueAt(selectedRow, 2);
+        
+        int confirm = JOptionPane.showConfirmDialog(this,
+            "Are you sure you want to delete fuel record:\nID: " + fuelId + "\nVehicle: " + vehicleNo + "?",
+            "Confirm Delete", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        
+        if (confirm == JOptionPane.YES_OPTION) {
+            String sql = "DELETE FROM fuel_log WHERE id = ?";
+            
+            try (Connection conn = DBConnection.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
+                
+                ps.setInt(1, fuelId);
+                int rowsAffected = ps.executeUpdate();
+                
+                if (rowsAffected > 0) {
+                    JOptionPane.showMessageDialog(this, "Fuel record deleted successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    loadFuelData();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Failed to delete fuel record.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Database error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    private void updateSelectedFuel() {
+        int selectedRow = table.getSelectedRow();
+        
+        if (selectedRow == -1) {
+            JOptionPane.showMessageDialog(this, "Please select a row to update!", "No Selection", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        int fuelId = (int) tableModel.getValueAt(selectedRow, 0);
+        String currentDate = (String) tableModel.getValueAt(selectedRow, 1);
+        String currentVehicle = (String) tableModel.getValueAt(selectedRow, 2);
+        double currentTank = (double) tableModel.getValueAt(selectedRow, 3);
+        String currentFrom = (String) tableModel.getValueAt(selectedRow, 4);
+        String currentTo = (String) tableModel.getValueAt(selectedRow, 5);
+        double currentDistance = (double) tableModel.getValueAt(selectedRow, 6);
+        double currentFuelNeeded = (double) tableModel.getValueAt(selectedRow, 7);
+        String currentReceiver = (String) tableModel.getValueAt(selectedRow, 8);
+        
+        JTextField dateField = new JTextField(currentDate);
+        JTextField vehicleField = new JTextField(currentVehicle);
+        JTextField tankField = new JTextField(String.valueOf(currentTank));
+        JTextField fromField = new JTextField(currentFrom);
+        JTextField toField = new JTextField(currentTo);
+        JTextField distanceField = new JTextField(String.valueOf(currentDistance));
+        JTextField fuelNeededField = new JTextField(String.valueOf(currentFuelNeeded));
+        JTextField receiverField = new JTextField(currentReceiver);
+        
+        JPanel panel = new JPanel(new GridLayout(9, 2, 5, 5));
+        panel.add(new JLabel("Fuel ID:")); panel.add(new JLabel(String.valueOf(fuelId)));
+        panel.add(new JLabel("Date (yyyy-mm-dd):")); panel.add(dateField);
+        panel.add(new JLabel("Vehicle Number:")); panel.add(vehicleField);
+        panel.add(new JLabel("Tank Liters:")); panel.add(tankField);
+        panel.add(new JLabel("From Location:")); panel.add(fromField);
+        panel.add(new JLabel("To Location:")); panel.add(toField);
+        panel.add(new JLabel("Distance (km):")); panel.add(distanceField);
+        panel.add(new JLabel("Fuel Needed (L):")); panel.add(fuelNeededField);
+        panel.add(new JLabel("Receiver Name:")); panel.add(receiverField);
+        
+        int result = JOptionPane.showConfirmDialog(this, panel, "Update Fuel Record (ID: " + fuelId + ")",
+            JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        
+        if (result == JOptionPane.OK_OPTION) {
+            try {
+                String newDate = dateField.getText().trim();
+                String newVehicle = vehicleField.getText().trim();
+                double newTank = Double.parseDouble(tankField.getText().trim());
+                String newFrom = fromField.getText().trim();
+                String newTo = toField.getText().trim();
+                double newDistance = Double.parseDouble(distanceField.getText().trim());
+                double newFuelNeeded = Double.parseDouble(fuelNeededField.getText().trim());
+                String newReceiver = receiverField.getText().trim();
+                
+                if (newDate.isEmpty() || newVehicle.isEmpty() || newFrom.isEmpty() || 
+                    newTo.isEmpty() || newReceiver.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "All fields are required!", "Validation Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                String sql = "UPDATE fuel_log SET date=?, vehicle_number=?, tank_liters=?, " +
+                             "location_from=?, location_to=?, distance=?, fuel_needed=?, receiver_name=? WHERE id=?";
+                
+                try (Connection conn = DBConnection.getConnection();
+                     PreparedStatement ps = conn.prepareStatement(sql)) {
+                    
+                    ps.setString(1, newDate);
+                    ps.setString(2, newVehicle);
+                    ps.setDouble(3, newTank);
+                    ps.setString(4, newFrom);
+                    ps.setString(5, newTo);
+                    ps.setDouble(6, newDistance);
+                    ps.setDouble(7, newFuelNeeded);
+                    ps.setString(8, newReceiver);
+                    ps.setInt(9, fuelId);
+                    
+                    int rowsAffected = ps.executeUpdate();
+                    
+                    if (rowsAffected > 0) {
+                        JOptionPane.showMessageDialog(this, "Fuel record updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                        loadFuelData();
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Failed to update fuel record.", "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Please enter valid numbers for Tank Liters, Distance, and Fuel Needed.", "Validation Error", JOptionPane.ERROR_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Database error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                ex.printStackTrace();
+            }
         }
     }
 
