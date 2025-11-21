@@ -5,7 +5,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 
 public class AddOrderFrame extends JFrame {
-    JTextField orderIdField, orderStateField, loadedDateField, loadedTimeField,
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	JTextField orderIdField, orderStateField, loadedDateField, loadedTimeField,
             unloadedDateField, unloadedTimeField, loadFromField, loadToField;
     JButton saveButton;
 

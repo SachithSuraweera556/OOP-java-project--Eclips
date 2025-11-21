@@ -4,7 +4,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 
 public class AddOwnerFrame extends JFrame {
-    JTextField idField, nameField, phoneField, addressField, emailField;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	JTextField idField, nameField, phoneField, addressField, emailField;
     JButton saveButton;
 
     public AddOwnerFrame() {

@@ -2,7 +2,11 @@ import javax.swing.*;
 import java.awt.*;
 
 public class LoginFrame extends JFrame {
-    JTextField userField;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	JTextField userField;
     JPasswordField passField;
     JButton loginButton;
 
@@ -43,7 +47,11 @@ public class LoginFrame extends JFrame {
 }
 
 class ActivityFrame extends JFrame {
-    JComboBox<String> activityCombo;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	JComboBox<String> activityCombo;
     JButton selectButton;
     JButton viewDetailsButton; // NEW: View Details button
 

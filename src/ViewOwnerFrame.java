@@ -6,7 +6,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 public class ViewOwnerFrame extends JFrame {
-    private JTable table;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private JTable table;
     private DefaultTableModel tableModel;
     private JButton refreshButton, updateButton, deleteButton;
 

@@ -4,7 +4,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 
 public class AddEmployeeFrame extends JFrame {
-    private JTextField idField, nameField, ageField, nicField, contactField, addressField, emailField, accountField, bonusField, leavesField;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private JTextField idField, nameField, ageField, nicField, contactField, addressField, emailField, accountField, bonusField, leavesField;
     private JComboBox<String> designationCombo;
     private JButton saveButton;
 

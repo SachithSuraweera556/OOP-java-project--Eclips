@@ -4,7 +4,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 
 public class AddVehicleFrame extends JFrame {
-    JTextField idField, numberField, typeField, modelField;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	JTextField idField, numberField, typeField, modelField;
     JButton saveButton;
 
     public AddVehicleFrame() {

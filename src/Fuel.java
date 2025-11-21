@@ -9,7 +9,47 @@ public class Fuel {
         this.costPerLiter = costPerLiter;
     }
 
-    public void locationFuelCost() { System.out.println("Fuel cost calculated by location."); }
+    // Getter methods
+    public int getFuelID() {
+        return fuelID;
+    }
+
+    public String getLocation() {
+        return location;
+    }
+
+    public double getCostPerLiter() {
+        return costPerLiter;
+    }
+
+    // Setter methods
+    public void setFuelID(int fuelID) {
+        this.fuelID = fuelID;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public void setCostPerLiter(double costPerLiter) {
+        this.costPerLiter = costPerLiter;
+    }
+
+    // Business method
+    public void locationFuelCost() {
+        System.out.println("Fuel cost at " + location + ": Rs. " + costPerLiter + " per liter");
+    }
+
+    public double calculateTotalCost(double liters) {
+        return liters * costPerLiter;
+    }
+
+    @Override
+    public String toString() {
+        return "Fuel{" +
+                "fuelID=" + fuelID +
+                ", location='" + location + '\'' +
+                ", costPerLiter=" + costPerLiter +
+                '}';
+    }
 }
-
-
