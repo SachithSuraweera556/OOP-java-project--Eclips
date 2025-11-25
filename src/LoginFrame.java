@@ -2,11 +2,8 @@ import javax.swing.*;
 import java.awt.*;
 
 public class LoginFrame extends JFrame {
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	JTextField userField;
+    private static final long serialVersionUID = 1L;
+    JTextField userField;
     JPasswordField passField;
     JButton loginButton;
 
@@ -29,11 +26,13 @@ public class LoginFrame extends JFrame {
         loginButton.addActionListener(e -> {
             String user = userField.getText();
             String pass = new String(passField.getPassword());
-            if (user.equals("admin") && pass.equals("admin")) { // simple login
+            
+            // UPDATED: Use AuthService for secure login
+            if (AuthService.authenticate(user, pass)) {
                 new ActivityFrame();
                 dispose();
             } else {
-                JOptionPane.showMessageDialog(this, "Invalid credentials");
+                JOptionPane.showMessageDialog(this, "Invalid credentials", "Login Failed", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -46,38 +45,37 @@ public class LoginFrame extends JFrame {
     }
 }
 
+// Updated ActivityFrame with Settings Button
 class ActivityFrame extends JFrame {
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	JComboBox<String> activityCombo;
+    private static final long serialVersionUID = 1L;
+    JComboBox<String> activityCombo;
     JButton selectButton;
-    JButton viewDetailsButton; // NEW: View Details button
+    JButton viewDetailsButton;
+    JButton settingsButton; // NEW BUTTON
 
     public ActivityFrame() {
-        setTitle("Select Activity");
-        setSize(500, 150);
+        setTitle("Dashboard - Logged in as: " + (AuthService.currentUser != null ? AuthService.currentUser : "Admin"));
+        setSize(600, 150); // Increased width slightly
         setLayout(new FlowLayout());
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // ComboBox with all activities
         activityCombo = new JComboBox<>(new String[]{
                 "Add Owner", "Add Vehicle", "Add Employee", "Add Order", "Add Fuel"
         });
 
         selectButton = new JButton("Select");
-        viewDetailsButton = new JButton("View Details"); // NEW: Create View Details button
+        viewDetailsButton = new JButton("View Details");
+        settingsButton = new JButton("Change Password"); // New Button
 
         add(new JLabel("Choose Action:"));
         add(activityCombo);
         add(selectButton);
-        add(viewDetailsButton); // NEW: Add the button to the frame
+        add(viewDetailsButton);
+        add(settingsButton); // Add to frame
 
-        // Select button action - Opens Add forms
+        // Select Action
         selectButton.addActionListener(e -> {
             String activity = (String) activityCombo.getSelectedItem();
-
             switch (activity) {
                 case "Add Owner" -> Owner.showOwnerForm();
                 case "Add Vehicle" -> new AddVehicleFrame();
@@ -88,10 +86,9 @@ class ActivityFrame extends JFrame {
             }
         });
 
-        // NEW: View Details button action - Opens View frames
+        // View Action
         viewDetailsButton.addActionListener(e -> {
             String activity = (String) activityCombo.getSelectedItem();
-
             switch (activity) {
                 case "Add Owner" -> new ViewOwnerFrame();
                 case "Add Vehicle" -> new ViewVehicleFrame();
@@ -100,6 +97,11 @@ class ActivityFrame extends JFrame {
                 case "Add Fuel" -> new ViewFuelFrame();
                 default -> JOptionPane.showMessageDialog(this, "View not available for this item");
             }
+        });
+
+        // Settings Action
+        settingsButton.addActionListener(e -> {
+            new ChangePasswordFrame();
         });
 
         setLocationRelativeTo(null);
