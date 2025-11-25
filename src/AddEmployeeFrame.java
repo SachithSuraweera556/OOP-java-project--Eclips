@@ -146,4 +146,5 @@ public class AddEmployeeFrame extends JFrame {
             ex.printStackTrace();
         }
     }
+    
 }
