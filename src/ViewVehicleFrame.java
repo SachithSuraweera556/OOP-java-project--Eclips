@@ -6,13 +6,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 public class ViewVehicleFrame extends JFrame {
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	private JTable table;
+    private JTable table;
     private DefaultTableModel tableModel;
-    private JButton refreshButton, updateButton, deleteButton;
+    private JButton refreshButton, updateButton, deleteButton, searchButton;
+    private JTextField searchField;
 
     public ViewVehicleFrame() {
         setTitle("View All Vehicles");
@@ -33,6 +30,16 @@ public class ViewVehicleFrame extends JFrame {
         JScrollPane scrollPane = new JScrollPane(table);
         add(scrollPane, BorderLayout.CENTER);
 
+        // Search panel at top
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        searchPanel.add(new JLabel("Search:"));
+        searchField = new JTextField(20);
+        searchButton = new JButton("Search");
+        searchPanel.add(searchField);
+        searchPanel.add(searchButton);
+        add(searchPanel, BorderLayout.NORTH);
+
+        // Button panel at bottom
         JPanel buttonPanel = new JPanel();
         refreshButton = new JButton("Refresh Data");
         updateButton = new JButton("Update Selected");
@@ -46,6 +53,8 @@ public class ViewVehicleFrame extends JFrame {
         refreshButton.addActionListener(e -> loadVehicleData());
         updateButton.addActionListener(e -> updateSelectedVehicle());
         deleteButton.addActionListener(e -> deleteSelectedVehicle());
+        searchButton.addActionListener(e -> searchVehicleData());
+        searchField.addActionListener(e -> searchVehicleData());
         
         buttonPanel.add(refreshButton);
         buttonPanel.add(updateButton);
@@ -57,7 +66,54 @@ public class ViewVehicleFrame extends JFrame {
         setVisible(true);
     }
 
+    // ============ SEARCH FUNCTION ============
+    private void searchVehicleData() {
+        String searchText = searchField.getText().trim();
+        
+        if (searchText.isEmpty()) {
+            loadVehicleData();
+            return;
+        }
+        
+        tableModel.setRowCount(0);
+        String sql = "SELECT VehicleID, VehicleNumber, VehicleType, Model FROM Vehicle " +
+                     "WHERE LOWER(CAST(VehicleID AS VARCHAR)) LIKE LOWER(?) " +
+                     "OR LOWER(VehicleNumber) LIKE LOWER(?) " +
+                     "OR LOWER(VehicleType) LIKE LOWER(?) " +
+                     "OR LOWER(Model) LIKE LOWER(?) ORDER BY VehicleID";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            String searchPattern = "%" + searchText + "%";
+            ps.setString(1, searchPattern);
+            ps.setString(2, searchPattern);
+            ps.setString(3, searchPattern);
+            ps.setString(4, searchPattern);
+            
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Object[] row = {
+                    rs.getInt("VehicleID"),
+                    rs.getString("VehicleNumber"),
+                    rs.getString("VehicleType"),
+                    rs.getString("Model")
+                };
+                tableModel.addRow(row);
+            }
+            
+            if (tableModel.getRowCount() == 0) {
+                JOptionPane.showMessageDialog(this, "No results found for: " + searchText, "Search Result", JOptionPane.INFORMATION_MESSAGE);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Search error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
+    }
+
     private void loadVehicleData() {
+        searchField.setText("");
         tableModel.setRowCount(0);
         String sql = "SELECT VehicleID, VehicleNumber, VehicleType, Model FROM Vehicle ORDER BY VehicleID";
         

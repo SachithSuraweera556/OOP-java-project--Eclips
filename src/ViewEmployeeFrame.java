@@ -6,13 +6,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 public class ViewEmployeeFrame extends JFrame {
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	private JTable table;
+    private JTable table;
     private DefaultTableModel tableModel;
-    private JButton refreshButton, updateButton, deleteButton;
+    private JButton refreshButton, updateButton, deleteButton, searchButton;
+    private JTextField searchField;
 
     public ViewEmployeeFrame() {
         setTitle("View All Employees");
@@ -40,6 +37,16 @@ public class ViewEmployeeFrame extends JFrame {
         JScrollPane scrollPane = new JScrollPane(table);
         add(scrollPane, BorderLayout.CENTER);
 
+        // Search panel at top
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        searchPanel.add(new JLabel("Search:"));
+        searchField = new JTextField(20);
+        searchButton = new JButton("Search");
+        searchPanel.add(searchField);
+        searchPanel.add(searchButton);
+        add(searchPanel, BorderLayout.NORTH);
+
+        // Button panel at bottom
         JPanel buttonPanel = new JPanel();
         refreshButton = new JButton("Refresh Data");
         updateButton = new JButton("Update Selected");
@@ -53,6 +60,8 @@ public class ViewEmployeeFrame extends JFrame {
         refreshButton.addActionListener(e -> loadEmployeeData());
         updateButton.addActionListener(e -> updateSelectedEmployee());
         deleteButton.addActionListener(e -> deleteSelectedEmployee());
+        searchButton.addActionListener(e -> searchEmployeeData());
+        searchField.addActionListener(e -> searchEmployeeData());
         
         buttonPanel.add(refreshButton);
         buttonPanel.add(updateButton);
@@ -64,7 +73,67 @@ public class ViewEmployeeFrame extends JFrame {
         setVisible(true);
     }
 
+    // ============ SEARCH FUNCTION ============
+    private void searchEmployeeData() {
+        String searchText = searchField.getText().trim();
+        
+        if (searchText.isEmpty()) {
+            loadEmployeeData();
+            return;
+        }
+        
+        tableModel.setRowCount(0);
+        String sql = "SELECT EmployeeID, Name, Age, NIC, Contact, Address, Email, AccountNumber, " +
+                     "Designation, Salary, LeavesTaken, Bonus FROM Employee " +
+                     "WHERE LOWER(CAST(EmployeeID AS VARCHAR)) LIKE LOWER(?) " +
+                     "OR LOWER(Name) LIKE LOWER(?) " +
+                     "OR LOWER(NIC) LIKE LOWER(?) " +
+                     "OR LOWER(Contact) LIKE LOWER(?) " +
+                     "OR LOWER(Address) LIKE LOWER(?) " +
+                     "OR LOWER(Email) LIKE LOWER(?) " +
+                     "OR LOWER(AccountNumber) LIKE LOWER(?) " +
+                     "OR LOWER(Designation) LIKE LOWER(?) " +
+                     "ORDER BY EmployeeID";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            String searchPattern = "%" + searchText + "%";
+            for (int i = 1; i <= 8; i++) {
+                ps.setString(i, searchPattern);
+            }
+            
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Object[] row = {
+                    rs.getInt("EmployeeID"),
+                    rs.getString("Name"),
+                    rs.getInt("Age"),
+                    rs.getString("NIC"),
+                    rs.getString("Contact"),
+                    rs.getString("Address"),
+                    rs.getString("Email"),
+                    rs.getString("AccountNumber"),
+                    rs.getString("Designation"),
+                    String.format("%.2f", rs.getDouble("Salary")),
+                    rs.getInt("LeavesTaken"),
+                    String.format("%.2f", rs.getDouble("Bonus"))
+                };
+                tableModel.addRow(row);
+            }
+            
+            if (tableModel.getRowCount() == 0) {
+                JOptionPane.showMessageDialog(this, "No results found for: " + searchText, "Search Result", JOptionPane.INFORMATION_MESSAGE);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Search error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
+    }
+
     private void loadEmployeeData() {
+        searchField.setText("");
         tableModel.setRowCount(0);
         String sql = "SELECT EmployeeID, Name, Age, NIC, Contact, Address, Email, " +
                      "AccountNumber, Designation, Salary, LeavesTaken, Bonus FROM Employee ORDER BY EmployeeID";
@@ -118,14 +187,12 @@ public class ViewEmployeeFrame extends JFrame {
         
         if (confirm == JOptionPane.YES_OPTION) {
             try (Connection conn = DBConnection.getConnection()) {
-                // Delete from role-specific table first
-                String roleTable = designation; // Driver, Officer, or Helper
+                String roleTable = designation;
                 String sqlRole = "DELETE FROM " + roleTable + " WHERE EmployeeID = ?";
                 PreparedStatement psRole = conn.prepareStatement(sqlRole);
                 psRole.setInt(1, empId);
                 psRole.executeUpdate();
                 
-                // Delete from Employee table
                 String sqlEmp = "DELETE FROM Employee WHERE EmployeeID = ?";
                 PreparedStatement psEmp = conn.prepareStatement(sqlEmp);
                 psEmp.setInt(1, empId);

@@ -6,13 +6,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 public class ViewOrderFrame extends JFrame {
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	private JTable table;
+    private JTable table;
     private DefaultTableModel tableModel;
-    private JButton refreshButton, updateButton, deleteButton;
+    private JButton refreshButton, updateButton, deleteButton, searchButton;
+    private JTextField searchField;
 
     public ViewOrderFrame() {
         setTitle("View All Orders");
@@ -38,6 +35,16 @@ public class ViewOrderFrame extends JFrame {
         JScrollPane scrollPane = new JScrollPane(table);
         add(scrollPane, BorderLayout.CENTER);
 
+        // Search panel at top
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        searchPanel.add(new JLabel("Search:"));
+        searchField = new JTextField(20);
+        searchButton = new JButton("Search");
+        searchPanel.add(searchField);
+        searchPanel.add(searchButton);
+        add(searchPanel, BorderLayout.NORTH);
+
+        // Button panel at bottom
         JPanel buttonPanel = new JPanel();
         refreshButton = new JButton("Refresh Data");
         updateButton = new JButton("Update Selected");
@@ -51,6 +58,8 @@ public class ViewOrderFrame extends JFrame {
         refreshButton.addActionListener(e -> loadOrderData());
         updateButton.addActionListener(e -> updateSelectedOrder());
         deleteButton.addActionListener(e -> deleteSelectedOrder());
+        searchButton.addActionListener(e -> searchOrderData());
+        searchField.addActionListener(e -> searchOrderData());
         
         buttonPanel.add(refreshButton);
         buttonPanel.add(updateButton);
@@ -62,7 +71,59 @@ public class ViewOrderFrame extends JFrame {
         setVisible(true);
     }
 
+    // ============ SEARCH FUNCTION ============
+    private void searchOrderData() {
+        String searchText = searchField.getText().trim();
+        
+        if (searchText.isEmpty()) {
+            loadOrderData();
+            return;
+        }
+        
+        tableModel.setRowCount(0);
+        String sql = "SELECT OrderID, OrderState, LoadedDate, LoadedTime, UnloadedDate, UnloadedTime, LoadFrom, LoadTo FROM Orders " +
+                     "WHERE LOWER(OrderID) LIKE LOWER(?) " +
+                     "OR LOWER(OrderState) LIKE LOWER(?) " +
+                     "OR LOWER(LoadFrom) LIKE LOWER(?) " +
+                     "OR LOWER(LoadTo) LIKE LOWER(?) " +
+                     "ORDER BY OrderID";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            String searchPattern = "%" + searchText + "%";
+            ps.setString(1, searchPattern);
+            ps.setString(2, searchPattern);
+            ps.setString(3, searchPattern);
+            ps.setString(4, searchPattern);
+            
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Object[] row = {
+                    rs.getString("OrderID"),
+                    rs.getString("OrderState"),
+                    rs.getString("LoadedDate"),
+                    rs.getString("LoadedTime"),
+                    rs.getString("UnloadedDate"),
+                    rs.getString("UnloadedTime"),
+                    rs.getString("LoadFrom"),
+                    rs.getString("LoadTo")
+                };
+                tableModel.addRow(row);
+            }
+            
+            if (tableModel.getRowCount() == 0) {
+                JOptionPane.showMessageDialog(this, "No results found for: " + searchText, "Search Result", JOptionPane.INFORMATION_MESSAGE);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Search error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
+    }
+
     private void loadOrderData() {
+        searchField.setText("");
         tableModel.setRowCount(0);
         String sql = "SELECT OrderID, OrderState, LoadedDate, LoadedTime, " +
                      "UnloadedDate, UnloadedTime, LoadFrom, LoadTo FROM Orders ORDER BY OrderID";

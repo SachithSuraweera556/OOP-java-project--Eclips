@@ -6,13 +6,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 public class ViewFuelFrame extends JFrame {
-    /**
-	 * 
-	 */
-	private static final long serialVersionUID = 1L;
-	private JTable table;
+    private JTable table;
     private DefaultTableModel tableModel;
-    private JButton refreshButton, updateButton, deleteButton;
+    private JButton refreshButton, updateButton, deleteButton, searchButton;
+    private JTextField searchField;
 
     public ViewFuelFrame() {
         setTitle("View All Fuel Records");
@@ -40,6 +37,16 @@ public class ViewFuelFrame extends JFrame {
         JScrollPane scrollPane = new JScrollPane(table);
         add(scrollPane, BorderLayout.CENTER);
 
+        // Search panel at top
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        searchPanel.add(new JLabel("Search:"));
+        searchField = new JTextField(20);
+        searchButton = new JButton("Search");
+        searchPanel.add(searchField);
+        searchPanel.add(searchButton);
+        add(searchPanel, BorderLayout.NORTH);
+
+        // Button panel at bottom
         JPanel buttonPanel = new JPanel();
         refreshButton = new JButton("Refresh Data");
         updateButton = new JButton("Update Selected");
@@ -53,6 +60,8 @@ public class ViewFuelFrame extends JFrame {
         refreshButton.addActionListener(e -> loadFuelData());
         updateButton.addActionListener(e -> updateSelectedFuel());
         deleteButton.addActionListener(e -> deleteSelectedFuel());
+        searchButton.addActionListener(e -> searchFuelData());
+        searchField.addActionListener(e -> searchFuelData());
         
         buttonPanel.add(refreshButton);
         buttonPanel.add(updateButton);
@@ -64,7 +73,61 @@ public class ViewFuelFrame extends JFrame {
         setVisible(true);
     }
 
+    // ============ SEARCH FUNCTION ============
+    private void searchFuelData() {
+        String searchText = searchField.getText().trim();
+        
+        if (searchText.isEmpty()) {
+            loadFuelData();
+            return;
+        }
+        
+        tableModel.setRowCount(0);
+        String sql = "SELECT id, date, vehicle_number, tank_liters, location_from, location_to, " +
+                     "distance, fuel_needed, receiver_name FROM fuel_log " +
+                     "WHERE LOWER(CAST(id AS VARCHAR)) LIKE LOWER(?) " +
+                     "OR LOWER(vehicle_number) LIKE LOWER(?) " +
+                     "OR LOWER(location_from) LIKE LOWER(?) " +
+                     "OR LOWER(location_to) LIKE LOWER(?) " +
+                     "OR LOWER(receiver_name) LIKE LOWER(?) " +
+                     "ORDER BY id DESC";
+        
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            String searchPattern = "%" + searchText + "%";
+            for (int i = 1; i <= 5; i++) {
+                ps.setString(i, searchPattern);
+            }
+            
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Object[] row = {
+                    rs.getInt("id"),
+                    rs.getString("date"),
+                    rs.getString("vehicle_number"),
+                    rs.getDouble("tank_liters"),
+                    rs.getString("location_from"),
+                    rs.getString("location_to"),
+                    rs.getDouble("distance"),
+                    rs.getDouble("fuel_needed"),
+                    rs.getString("receiver_name")
+                };
+                tableModel.addRow(row);
+            }
+            
+            if (tableModel.getRowCount() == 0) {
+                JOptionPane.showMessageDialog(this, "No results found for: " + searchText, "Search Result", JOptionPane.INFORMATION_MESSAGE);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Search error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
+        }
+    }
+
     private void loadFuelData() {
+        searchField.setText("");
         tableModel.setRowCount(0);
         String sql = "SELECT id, date, vehicle_number, tank_liters, location_from, " +
                      "location_to, distance, fuel_needed, receiver_name FROM fuel_log ORDER BY id DESC";
