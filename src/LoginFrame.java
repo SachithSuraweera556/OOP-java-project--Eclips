@@ -27,10 +27,10 @@ public class LoginFrame extends JFrame {
             String user = userField.getText();
             String pass = new String(passField.getPassword());
             
-            // UPDATED: Use AuthService for secure login
+            // Uses AuthService for secure, hashed login
             if (AuthService.authenticate(user, pass)) {
                 new ActivityFrame();
-                dispose();
+                dispose(); // Close login window
             } else {
                 JOptionPane.showMessageDialog(this, "Invalid credentials", "Login Failed", JOptionPane.ERROR_MESSAGE);
             }
@@ -45,35 +45,53 @@ public class LoginFrame extends JFrame {
     }
 }
 
-// Updated ActivityFrame with Settings Button
+// The Dashboard Class
 class ActivityFrame extends JFrame {
     private static final long serialVersionUID = 1L;
     JComboBox<String> activityCombo;
     JButton selectButton;
     JButton viewDetailsButton;
-    JButton settingsButton; // NEW BUTTON
+    JButton settingsButton;
+    JButton reportButton; 
 
     public ActivityFrame() {
-        setTitle("Dashboard - Logged in as: " + (AuthService.currentUser != null ? AuthService.currentUser : "Admin"));
-        setSize(600, 150); // Increased width slightly
-        setLayout(new FlowLayout());
+        // Display who is logged in
+        String currentUser = (AuthService.currentUser != null) ? AuthService.currentUser : "Admin";
+        setTitle("Dashboard - Logged in as: " + currentUser);
+        
+        setSize(650, 150); 
+        setLayout(new FlowLayout(FlowLayout.CENTER, 10, 20)); 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+        // 1. Dropdown for standard activities
         activityCombo = new JComboBox<>(new String[]{
                 "Add Owner", "Add Vehicle", "Add Employee", "Add Order", "Add Fuel"
         });
 
-        selectButton = new JButton("Select");
+        // 2. Define Buttons
+        selectButton = new JButton("Select Action");
+        
         viewDetailsButton = new JButton("View Details");
-        settingsButton = new JButton("Change Password"); // New Button
+        
+        settingsButton = new JButton("Change Password");
+        settingsButton.setBackground(new Color(255, 193, 7)); // Orange/Yellow
+        settingsButton.setForeground(Color.BLACK);
 
-        add(new JLabel("Choose Action:"));
+        reportButton = new JButton("Monthly Report");
+        reportButton.setBackground(new Color(40, 167, 69)); // Green
+        reportButton.setForeground(Color.WHITE);
+
+        // 3. Add Components to Frame
+        add(new JLabel("Choose Activity:"));
         add(activityCombo);
         add(selectButton);
         add(viewDetailsButton);
-        add(settingsButton); // Add to frame
+        add(settingsButton);
+        add(reportButton);
 
-        // Select Action
+        // --- BUTTON ACTIONS ---
+
+        // Action 1: Open 'Add' Forms
         selectButton.addActionListener(e -> {
             String activity = (String) activityCombo.getSelectedItem();
             switch (activity) {
@@ -86,7 +104,7 @@ class ActivityFrame extends JFrame {
             }
         });
 
-        // View Action
+        // Action 2: Open 'View' Frames
         viewDetailsButton.addActionListener(e -> {
             String activity = (String) activityCombo.getSelectedItem();
             switch (activity) {
@@ -99,10 +117,11 @@ class ActivityFrame extends JFrame {
             }
         });
 
-        // Settings Action
-        settingsButton.addActionListener(e -> {
-            new ChangePasswordFrame();
-        });
+        // Action 3: Open Change Password
+        settingsButton.addActionListener(e -> new ChangePasswordFrame());
+
+        // Action 4: Open Monthly Report
+        reportButton.addActionListener(e -> new MonthlyReportFrame());
 
         setLocationRelativeTo(null);
         setVisible(true);

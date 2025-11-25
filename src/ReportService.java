@@ -4,10 +4,10 @@ import java.sql.ResultSet;
 
 public class ReportService {
 
-    // 1. Get Total Orders for a specific Month/Year
+    // 1. Count total orders for a selected Month and Year
     public static int getMonthlyOrderCount(int year, int month) {
         int count = 0;
-        // Since you changed LoadedDate to DATE, we use YEAR() and MONTH()
+        // SQL query using built-in Date functions
         String sql = "SELECT COUNT(*) AS Total FROM Orders WHERE YEAR(LoadedDate) = ? AND MONTH(LoadedDate) = ?";
 
         try (Connection conn = DBConnection.getConnection();
@@ -26,10 +26,9 @@ public class ReportService {
         return count;
     }
 
-    // 2. Get Total Fuel Consumed for a specific Month/Year
+    // 2. Sum total fuel usage for a selected Month and Year
     public static double getMonthlyFuelUsage(int year, int month) {
         double totalFuel = 0;
-        // fuel_log also uses DATE, so the logic is the same
         String sql = "SELECT SUM(fuel_needed) AS TotalFuel FROM fuel_log WHERE YEAR(date) = ? AND MONTH(date) = ?";
 
         try (Connection conn = DBConnection.getConnection();
@@ -48,11 +47,10 @@ public class ReportService {
         return totalFuel;
     }
 
-    // 3. Estimate Costs (Assuming 1 Liter = Rs. 350)
-    // You can change the 350.0 to whatever the current market price is
+    // 3. Calculate Estimated Cost (Assuming Rs. 350 per Liter)
     public static double getEstimatedFuelCost(int year, int month) {
         double liters = getMonthlyFuelUsage(year, month);
-        double costPerLiter = 350.0; 
+        double costPerLiter = 350.0; // You can update this rate if fuel prices change
         return liters * costPerLiter;
     }
 }
