@@ -191,8 +191,8 @@ class ActivityFrame extends JFrame {
         sidebar.add(Box.createRigidArea(new Dimension(0, 40)));
 
         // Add Sidebar Buttons
-        sidebar.add(createSidebarButton("  Change Password", e -> new ChangePasswordFrame()));
-        sidebar.add(Box.createRigidArea(new Dimension(0, 10)));
+        // --- MODIFIED: REMOVED CHANGE PASSWORD BUTTON ---
+        
         sidebar.add(createSidebarButton("  Logout", e -> {
             dispose();
             new LoginFrame();
